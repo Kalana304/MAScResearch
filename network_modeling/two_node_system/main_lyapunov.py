@@ -100,10 +100,12 @@ if __name__ == '__main__':
     save_str = datetime.datetime.now()
     sub_dir = f"exp-{save_str.year}-{save_str.month}-{save_str.day}"
 
-    param_json = glob.glob(os.path.join(load_root, f'{experiment}*.json'))
+
     sigma_arr = np.arange(2.5, 17.5, 1)
 
     for exp in experiment:
+        param_json = glob.glob(os.path.join(load_root, f'{exp}*.json'))
+        
         for iter, param_file_name in enumerate(param_json):
             with open(param_file_name, 'r+') as f:
                 print(f'loading parameters from {param_file_name}')
