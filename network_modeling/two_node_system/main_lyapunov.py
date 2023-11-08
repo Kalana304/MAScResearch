@@ -157,7 +157,7 @@ if __name__ == '__main__':
                                 'n2_max': lyapunov_n2_max
                             }
 
-            if experiment == 'e1_i1':
+            if exp == 'e1_i1':
                 para_str = r"($K_{12} = $" + f"{params['K']:.2f}, " + r"$I_{in}^1 = $" + f"{params['i_e1']:.3f}mV, " + \
                            r"$\sigma_e^2$ = " + f"{params['sig_e2']:.2f}, " + r"$\sigma_i^2$ = " + f"{params['sig_i2']:.2f})"
                 plot_opts_dict = {
@@ -166,7 +166,7 @@ if __name__ == '__main__':
                                     'xlabel': r'$\sigma_i^1$',
                                     'para_str': para_str
                                 }
-            elif experiment == 'e2_i2':
+            elif exp == 'e2_i2':
                 para_str = r"($K_{12} = $" + f"{params['K']:.2f}, " + r"$I_{in}^1 = $" + f"{params['i_e1']:.3f}mV, " + \
                            r"$\sigma_e^1$ = " + f"{params['sig_e1']:.2f}, " + r"$\sigma_i^1$ = " + f"{params['sig_i1']:.2f})"
                 plot_opts_dict = {
