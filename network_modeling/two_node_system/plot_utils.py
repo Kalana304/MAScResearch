@@ -7,13 +7,14 @@ import datetime
 import numpy as np
 from copy import deepcopy
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 from scipy import signal, linalg
 from scipy.optimize import fsolve
 from scipy.integrate import solve_ivp
 
 plt.rcParams.update({'font.size': 16})
-
+THRESH_COLORS = ["aliceblue", "cornflowerblue", "darkblue"]
 
 def plot_ts(u, t_arr, t1, t2, fig_size=(10, 6), if_save=False, save_dir=None, image_name=None, **opts):
     u_plot_arr = u[:, :, t1: t2]
@@ -159,7 +160,7 @@ def plot_lyapunov_nodes(var1_arr, var2_arr, plot_opts=None, save_dir=None, if_sa
     for pos in ['right', 'top', 'bottom', 'left']:
         plt.gca().spines[pos].set_visible(False)
 
-    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n1_mean'), cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n1_mean'), cmap='Blues')
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Time-averaged lyapunov exponents (node 01)')
@@ -169,7 +170,7 @@ def plot_lyapunov_nodes(var1_arr, var2_arr, plot_opts=None, save_dir=None, if_sa
 
     for pos in ['right', 'top', 'bottom', 'left']:
         plt.gca().spines[pos].set_visible(False)
-    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n2_mean'), cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n2_mean'), cmap='Blues')
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Time-averaged lyapunov exponents (node 02)')
@@ -179,7 +180,7 @@ def plot_lyapunov_nodes(var1_arr, var2_arr, plot_opts=None, save_dir=None, if_sa
 
     for pos in ['right', 'top', 'bottom', 'left']:
         plt.gca().spines[pos].set_visible(False)
-    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n1_max'), cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n1_max'), cmap='Blues')
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Max. lyapunov exponents (node 01)')
@@ -189,7 +190,7 @@ def plot_lyapunov_nodes(var1_arr, var2_arr, plot_opts=None, save_dir=None, if_sa
 
     for pos in ['right', 'top', 'bottom', 'left']:
         plt.gca().spines[pos].set_visible(False)
-    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n2_max'), cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyap_mat.get('n2_max'), cmap='Blues')
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Max. lyapunov exponents (node 02)')
@@ -224,28 +225,30 @@ def plot_lyapunov_network(var1_arr, var2_arr, mask_thresh=0.1, plot_opts=None, s
 
     plt.figure(figsize=plot_opts['fig_size'])
     plt.subplot(2, 2, 1)
-    plt.pcolormesh(var2_arr, var1_arr, lyapunov_network_mean, cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyapunov_network_mean, cmap='Blues')
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Mean lyapunov exponents (avg. across network)')
     plt.colorbar()
 
     plt.subplot(2, 2, 2)
-    plt.pcolormesh(var2_arr, var1_arr, lyapunov_network_max, cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyapunov_network_max, cmap='Blues')
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Max lyapunov exponents (avg. across network)')
     plt.colorbar()
 
+    cmap = ListedColormap(THRESH_COLORS)
+
     plt.subplot(2, 2, 3)
-    plt.pcolormesh(var2_arr, var1_arr, lyapunov_mean_thresh, cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyapunov_mean_thresh, cmap=cmap)
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Mean lyapunov exponents (avg. across network) - thresholded')
     plt.colorbar()
 
     plt.subplot(2, 2, 4)
-    plt.pcolormesh(var2_arr, var1_arr, lyapunov_max_thresh, cmap='hot_r')
+    plt.pcolormesh(var2_arr, var1_arr, lyapunov_max_thresh, cmap=cmap)
     plt.ylabel(plot_opts['ylabel']);
     plt.xlabel(plot_opts['xlabel'])
     plt.title('Max lyapunov exponents (avg. across network) - thresholded')
@@ -257,3 +260,5 @@ def plot_lyapunov_network(var1_arr, var2_arr, mask_thresh=0.1, plot_opts=None, s
     if if_save:
         plt.savefig(os.path.join(save_dir, image_name + '.png'), dpi=600, bbox_inches='tight')
     plt.show()
+
+    return

@@ -64,7 +64,7 @@ def euler_intergrate(u, **opts):
     i_i2 = opts.get('i_i2')
 
     T = opts.get('T')
-    print('running euler intergration')
+    # print('running euler intergration')
 
     for k, y0 in enumerate(zip(x0_, x1_, x2_, x3_)):
         # initialize with the points
@@ -105,7 +105,7 @@ if __name__ == '__main__':
 
     for exp in experiment:
         param_json = glob.glob(os.path.join(load_root, f'{exp}*.json'))
-        
+
         for iter, param_file_name in enumerate(param_json):
             with open(param_file_name, 'r+') as f:
                 print(f'loading parameters from {param_file_name}')
