@@ -41,30 +41,95 @@ def coupled_node_model(x, t, **opts):
     sig_i1 = opts.get('sig_i1')
     sig_i2 = opts.get('sig_i2')
 
-    de1_dt = (-x[0] + opts.get('wee') * F(x[0], beta, theta, gamma, sig_e1) + opts.get('wie') * F(x[1], beta, theta,
-                                                                                                  gamma,
-                                                                                                  sig_i1) + opts.get(
-        'i_e1') + \
-              + opts.get('K') * x[2]) / opts.get('tau_e')
+    de1_dt = (-x[0] + opts.get('wee') * F(x[0], beta, theta, gamma, sig_e1) + \
+              opts.get('wie') * F(x[1], beta, theta, gamma, sig_i1) + \
+              opts.get('i_e1') + opts.get('K') * x[2]) / opts.get('tau_e')
 
-    de2_dt = (-x[2] + opts.get('wee') * F(x[2], beta, theta, gamma, sig_e2) + opts.get('wie') * F(x[3], beta, theta,
-                                                                                                  gamma,
-                                                                                                  sig_i2) + opts.get(
-        'i_e2') + \
-              + opts.get('K') * x[0]) / opts.get('tau_e')
+    de2_dt = (-x[2] + opts.get('wee') * F(x[2], beta, theta, gamma, sig_e2) + \
+              opts.get('wie') * F(x[3], beta, theta, gamma, sig_i2) + \
+              opts.get('i_e2') + opts.get('K') * x[0]) / opts.get('tau_e')
 
-    di1_dt = (-x[1] + opts.get('wei') * F(x[0], beta, theta, gamma, sig_e1) + opts.get('wii') * F(x[1], beta, theta,
-                                                                                                  gamma,
-                                                                                                  sig_i1) + opts.get(
-        'i_i1')) / opts.get('tau_i')
+    di1_dt = (-x[1] + opts.get('wei') * F(x[0], beta, theta, gamma, sig_e1) + \
+              opts.get('wii') * F(x[1], beta, theta, gamma, sig_i1) + \
+              opts.get('i_i1')) / opts.get('tau_i')
 
-    di2_dt = (-x[3] + opts.get('wei') * F(x[2], beta, theta, gamma, sig_e2) + opts.get('wii') * F(x[3], beta, theta,
-                                                                                                  gamma,
-                                                                                                  sig_i2) + opts.get(
-        'i_i2')) / opts.get('tau_i')
+    di2_dt = (-x[3] + opts.get('wei') * F(x[2], beta, theta, gamma, sig_e2) + \
+              opts.get('wii') * F(x[3], beta, theta, gamma, sig_i2) + \
+              opts.get('i_i2')) / opts.get('tau_i')
 
     return [de1_dt, di1_dt, de2_dt, di2_dt]
 
+
+def euler_intergrate(u, init_point, **opts):
+    # common parameters
+    beta = opts.get('beta')
+    gamma = opts.get('gamma')
+    theta = opts.get('theta')
+    x0_, x1_, x2_, x3_ = init_point
+
+    for k, y0 in enumerate(zip(x0_, x1_, x2_, x3_)):
+        # initialize with the points
+        u[k, :, 0] = y0
+        for t in range(opts.get('T') - 1):
+            u[k, 0, t + 1] = u[k, 0, t] + opts.get('dt') / opts.get('tau_e') * \
+                             (-u[k, 0, t] + opts.get('wee') * F(u[k, 0, t], beta, theta, gamma, opts.get('sig_e1')) + \
+                              opts.get('wie') * F(u[k, 1, t], beta, theta, gamma, opts.get('sig_i1')) + \
+                              opts.get('i_e1') + opts.get('K') * u[k, 2, t])
+
+            u[k, 1, t + 1] = u[k, 1, t] + opts.get('dt') / opts.get('tau_i') * \
+                             (-u[k, 1, t] + opts.get('wei') * F(u[k, 0, t], beta, theta, gamma, opts.get('sig_e1')) + \
+                              opts.get('wii') * F(u[k, 1, t], beta, theta, gamma, opts.get('sig_i1')) + opts.get(
+                                         'i_i1'))
+
+            u[k, 2, t + 1] = u[k, 2, t] + opts.get('dt') / opts.get('tau_e') * \
+                             (-u[k, 2, t] + opts.get('wee') * F(u[k, 2, t], beta, theta, gamma, opts.get('sig_e2')) + \
+                              opts.get('wie') * F(u[k, 3, t], beta, theta, gamma, opts.get('sig_i2')) + \
+                              opts.get('i_e2') + opts.get('K') * u[k, 0, t]
+                              )
+
+            u[k, 3, t + 1] = u[k, 3, t] + opts.get('dt') / opts.get('tau_i') * \
+                             (-u[k, 3, t] + opts.get('wei') * F(u[k, 2, t], beta, theta, gamma, opts.get('sig_e2')) + \
+                              opts.get('wii') * F(u[k, 3, t], beta, theta, gamma, opts.get('sig_i2')) + opts.get('i_i2')
+                              )
+    return u
+
+
+def calc_lypunov(
+        ts,
+        t1,
+        t2,
+        init_points,
+        perturb=1e-8,
+        **opts
+):
+    orig = deepcopy(ts[:, :, t1: t2])
+    ntrials, dims, _ = orig.shape
+    lyap_exp = np.zeros((ntrials, dims // 2, t2 - t1 - 1))
+
+    for k in range(ntrials):
+        orig_e1 = orig[k, 0, :]
+        orig_e2 = orig[k, 2, :]
+
+        lyap_temp = np.zeros((dims // 2, t2 - t1 - 1))
+        for d in range(dims):
+            init_ = deepcopy(init_points)
+            init_[d] += perturb
+            x0_, x1_, x2_, x3_ = init_
+            u_perturb = euler_intergrate(np.zeros((1, dims, opts.get('T'))), [[x0_[k]], [x1_[k]], [x2_[k]], [x3_[k]]],
+                                         **opts)
+            ue1_pert = u_perturb[0, 0, t1: t2]
+            ue2_pert = u_perturb[0, 2, t1: t2]
+
+            diffe1 = np.abs(ue1_pert - orig_e1)
+            lyap_temp[0, :] += 1 / dims * np.log(diffe1[1:])
+
+            diffe2 = np.abs(ue2_pert - orig_e2)
+            lyap_temp[1, :] += 1 / dims * np.log(diffe2[1:])
+
+        lyap_exp[k, 0, :] = lyap_temp[0, :]
+        lyap_exp[k, 1, :] = lyap_temp[1, :]
+
+    return lyap_exp
 
 def calc_fixed_points(
         minval,
@@ -107,8 +172,7 @@ def calc_fixed_points(
 
     for k in init_points:
         # find the root using Powell's method
-        sol, _, ier, msg = fsolve(lambda y: coupled_node_model(y, 0, **opts), [y0[k], y1[k], y2[k], y3[k]],
-                                  full_output=1)
+        sol, _, ier, msg = fsolve(lambda y: coupled_node_model(y, 0, **opts), [y0[k], y1[k], y2[k], y3[k]], full_output=1)
 
         # exclude the cases where fsolve didn't converge
         if ier == 1:
@@ -175,6 +239,7 @@ def calc_jacobian(fps, **opts):
 
     # evaluate jacobian at each fixed point of system
     for i, (f_e1, f_i1, f_e2, f_i2) in enumerate(fps):
+        # print(f_e1, f_i1, f_e2, f_i2)
         jacobian = np.zeros((4, 4))
 
         jacobian[0, 0] = (-1 + opts.get('wee') * Fprime(f_e1, beta, theta, gamma, sig_e1)) / opts.get('tau_e')
@@ -203,7 +268,7 @@ def calc_jacobian(fps, **opts):
         if np.isnan(sum(jacobian.flatten())) or np.isinf(sum(jacobian.flatten())):
             return results
 
-        evals = np.linalg.eig(jacobian)[0]
+        evals = np.linalg.eigvals(jacobian)
         results['eigvals'].append(evals)
 
         # Analysis

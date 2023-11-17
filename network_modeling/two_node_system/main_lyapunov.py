@@ -64,7 +64,7 @@ def euler_intergrate(u, **opts):
     i_i2 = opts.get('i_i2')
 
     T = opts.get('T')
-    # print('running euler intergration')
+    print('running euler intergration')
 
     for k, y0 in enumerate(zip(x0_, x1_, x2_, x3_)):
         # initialize with the points
