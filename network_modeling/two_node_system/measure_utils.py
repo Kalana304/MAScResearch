@@ -31,5 +31,7 @@ def spectrum_analysis(eig_vals):
         _max_rad_i = np.argmax(spec_rad)
         return spec_rad[_max_rad_i], spec_center[_max_rad_i], eig_real[_max_rad_i, :], eig_img[_max_rad_i, :]
 
-    else:
+    elif n_eigvals == 1:
         return spec_rad[0], spec_center[0], eig_real[0, :], eig_img[0, :]
+    else:
+        return np.inf, 0, np.inf, 0
