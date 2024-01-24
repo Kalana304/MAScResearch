@@ -26,7 +26,7 @@ COLOR_MAP = {
 # Setting save dir paths
 root_dir = "./results/fp/scene02"
 
-save_str = datetime.datetime.now()
+save_str = datetime.datetime(2024, 1, 23)
 sub_dir = f"exp-{save_str.year}-{save_str.month}-{save_str.day}"
 save_dir = os.path.join(root_dir, sub_dir)
 
@@ -76,11 +76,11 @@ if os.path.isfile(save_file_name):
 else:
     print("Running analysis...")
 
-    k_min = -1; k_max = 1; k_steps = 50; delta_k = (k_max - k_min) / k_steps
-    i_min = -0.25; i_max = 0.25; i_steps = 50; delta_i = (i_max - i_min) / i_steps
-    sig_min = 2.5; sig_max = 16.5; sig_steps = 50; delta_sig = (sig_max - sig_min) / sig_steps
+    k_min = -1; k_max = 1; k_steps = 10; delta_k = (k_max - k_min) / k_steps
+    i_min = -0.25; i_max = 0.25; i_steps = 2; delta_i = (i_max - i_min) / i_steps
+    sig_min = 2.5; sig_max = 16.5; sig_steps = 20; delta_sig = (sig_max - sig_min) / sig_steps
 
-    for ie in np.arange(i_min, i_max, delta_i):
+    for ie in np.arange(i_min, i_max + 0.05, delta_i):
         print(f"Evaluating for I = {ie:.3f}")
 
         params['i_e1'] = ie / params.get('gamma')

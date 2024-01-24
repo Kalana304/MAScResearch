@@ -24,7 +24,7 @@ COLOR_MAP = {
             }
 
 # Setting save dir paths
-root_dir = "./results/fp/scene02"
+root_dir = "./results/fp/scene03"
 
 save_str = datetime.datetime.now()
 sub_dir = f"exp-{save_str.year}-{save_str.month}-{save_str.day}"
@@ -33,7 +33,7 @@ save_dir = os.path.join(root_dir, sub_dir)
 print(f"Creating dir to save results:: {save_dir}")
 os.makedirs(save_dir, exist_ok = True)
 
-save_file_name = os.path.join(save_dir, 'scene02_data.pkl')
+save_file_name = os.path.join(save_dir, 'scene03_data.pkl')
 
 data_dict = {
                 "I": [],
@@ -78,9 +78,9 @@ else:
     print("Running analysis...")
 
     k_min = -1; k_max = 1; k_steps = 20; delta_k = (k_max - k_min) / k_steps
-    i_min = -0.25; i_max = 0.25; i_steps = 20; delta_i = (i_max - i_min) / i_steps
+    i_min = -0.25; i_max = 0.25; i_steps = 10; delta_i = (i_max - i_min) / i_steps
     sige_min = 2.5; sige_max = 16.5; sige_steps = 20; delta_sige = (sige_max - sige_min) / sige_steps
-    sigi_min = 2.5; sigi_max = 16.5; sigi_steps = 50; delta_sigi = (sigi_max - sigi_min) / sigi_steps
+    sigi_min = 2.5; sigi_max = 16.5; sigi_steps = 20; delta_sigi = (sigi_max - sigi_min) / sigi_steps
 
     for ie in np.arange(i_min, i_max, delta_i):
         print(f"Evaluating for I = {ie:.3f}")
