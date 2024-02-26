@@ -48,6 +48,17 @@ def CoeffVariance(time_series, tstart, tend):
     
     return CV
 
+def LyapunovStability(time_series, tstart, tend):
+    nTrials, _, _ = time_series.shape
+
+    LE = np.zeros(nTrials)
+
+    for q in range(nTrials):
+        diff = np.abs(np.diff(time_series[q, 0, tstart : tend]))
+        LE[q] = np.mean(np.log(diff))
+
+    return LE
+
 # Synchronization - time series analysis
 
 class AvalanchSynch(object):
@@ -55,7 +66,7 @@ class AvalanchSynch(object):
         This class calculates the Avalanche-type event synchronization based on the standarized
         time series and a set zlim threshold. 
     """
-    def __init__(self, time_series, thresh1, thresh2, tstart, tend, if_avg = False) -> None:
+    def __init__(self, time_series, thresh1, thresh2, tstart, tend) -> None:
         """
             parameters:
                 time_series (np.darray): N x 4 x T numpy array of node dynamics
@@ -73,18 +84,17 @@ class AvalanchSynch(object):
         self.t1 = tstart
         self.t2 = tend
         self.nTrials = nTrials
-        self.calc_avg = if_avg
-
         return
 
     def standarize_series(self, unstd_series):
         std_ = np.std(unstd_series)
+        mean_ = np.mean(unstd_series)
 
-        if round(std_, 3) == 0:
-            norm_series = unstd_series - np.mean(unstd_series)
+        if round(std_ / mean_, 2) == 0:
+            norm_series = unstd_series - mean_
         
         else:
-            norm_series = (unstd_series - np.mean(unstd_series)) / std_
+            norm_series = (unstd_series - mean_) / std_
 
         return norm_series
     
@@ -118,7 +128,6 @@ class AvalanchSynch(object):
                 l_thresh = np.min(delta_tji) / 2
             else:
                 l_thresh = 0.1      
-
 
             J_12 = np.zeros((M1, M2))
             J_21 = np.zeros((M2, M1))
@@ -229,7 +238,6 @@ class LocalMaxSynch(object):
     """
     def __init__(self, time_series, nSamples, tstart, tend) -> None:
         nTrials, _, _ = time_series.shape
-
         self.ue1 = time_series[:, 0, tstart : tend]
         self.ue2 = time_series[:, 2, tstart : tend]
         self.t1 = tstart
@@ -241,12 +249,30 @@ class LocalMaxSynch(object):
 
     def event_detection(self, ue_series):
         t_events = []
-
-        for t in range(0, self.t2 - self.t1 - 2):
-            if (ue_series[t - 1] < ue_series[t]) and (ue_series[t + 1] < ue_series[t]):
+        for t in range(2, self.t2 - self.t1 - 3):
+            if (ue_series[t - 1] < ue_series[t]) and (ue_series[t + 1] < ue_series[t]) and \
+                (ue_series[t - 2] < ue_series[t - 1]) and (ue_series[t + 2] < ue_series[t + 1]):
                 t_events.append(t)
         
         return np.array(t_events) 
+
+    def calcDelay(self, tij_1, tji_2, M1, M2):
+        tij_delay = max(tji_2[-1] - tij_1[0], 0)
+        tji_delay = max(tij_1[-1] - tji_2[0], 0)
+ 
+        for i in range(M1):
+            for j in range(M2):
+                if 0 < tji_2[j] - tij_1[i] < tij_delay and tij_1[i] != tji_2[j]:
+                    tij_delay = tji_2[j] - tij_1[i]
+                    break
+
+        for i in range(M2):
+            for j in range(M1):
+                if 0 < tij_1[j] - tji_2[i] < tji_delay and tij_1[j] != tji_2[i]:
+                    tji_delay = tij_1[j] - tji_2[i]      
+        
+        tau = min(tij_delay, tji_delay) / 2
+        return tau
 
     def QValue_calc(self, tij_1, tji_2):
         Q = 0
@@ -254,20 +280,22 @@ class LocalMaxSynch(object):
         M1 = len(tij_1)
         M2 = len(tji_2)
 
+        self.l_thresh = 0.0
+
         if M1 != 0 and M2 != 0:
-            delta_tij = np.diff(tij_1)
-            delta_tji = np.diff(tji_2)
+            self.l_thresh = self.calcDelay(tij_1, tji_2, M1, M2)
+            # delta_tij = np.diff(tij_1)
+            # delta_tji = np.diff(tji_2)
 
-            if M1 > 1 and M2 > 1:
-                l_thresh = min(np.min(delta_tij), np.min(delta_tji)) / 2
-            elif M1 > 1 and M2 == 1:
-                l_thresh = np.min(delta_tij) / 2
-            elif M1 == 1 and M2 > 1:
-                l_thresh = np.min(delta_tji) / 2
-            else:
-                l_thresh = 0.1      
+            # if M1 > 1 and M2 > 1:
+            #     l_thresh = min(np.min(delta_tij), np.min(delta_tji)) / 2
+            # elif M1 > 1 and M2 == 1:
+            #     l_thresh = np.min(delta_tij) / 2
+            # elif M1 == 1 and M2 > 1:
+            #     l_thresh = np.min(delta_tji) / 2
+            # else:
+            #     l_thresh = 0.1      
 
-            
             J_12 = np.zeros((M1, M2))
             J_21 = np.zeros((M2, M1))
 
@@ -278,7 +306,7 @@ class LocalMaxSynch(object):
                     if t_i == t_j:
                         J_12[m_i, m_j] = 0.5
 
-                    elif 0 < t_i - t_j <= l_thresh:
+                    elif 0 < t_i - t_j <= self.l_thresh:
                         J_12[m_i, m_j] = 1.0
             
             for m_j, t_j in enumerate(tji_2):
@@ -287,7 +315,7 @@ class LocalMaxSynch(object):
                     if t_j == t_i:
                         J_21[m_j, m_i] = 0.5
 
-                    elif 0 < t_j - t_i <= l_thresh:
+                    elif 0 < t_j - t_i <= self.l_thresh:
                         J_21[m_j, m_i] = 1.0
 
             c_12 = sum(J_12.flatten())
@@ -321,7 +349,7 @@ class LocalMaxSynch(object):
         for q in range(self.nTrials):
             ue1_arr = self.ue1[q, :]
             ue2_arr = self.ue2[q, :]
-
+            
             # Finding the extreme events
             t_ue1 = self.event_detection(ue1_arr)
             t_ue2 = self.event_detection(ue2_arr)
@@ -341,18 +369,49 @@ def variation_adjust(time_series, nTrials, tstart, tend):
     for q in range(nTrials):
         for nPop in range(4):
             sig_var = np.std(time_series[q, nPop, tstart : tend])
-            if round(sig_var, 3) == 0:
-                time_series[q, nPop, tstart : tend] = np.ones_like(time_series[q, nPop, tstart : tend]) * np.mean(time_series[q, nPop, tstart : tend])
+            sig_mean = np.mean(time_series[q, nPop, tstart : tend])
+            if round(sig_var / sig_mean, 3) == 0:
+                time_series[q, nPop, tstart : tend] = time_series[q, nPop, tstart : tend] - sig_mean
     return time_series
 
 def kuramoto_order_calc(time_series, tstart, tend, window_size = 200, step_window = 50):
     nTrials, _, _ = time_series.shape
-    time_series = variation_adjust(time_series, nTrials, tstart, tend)
+    # time_series = variation_adjust(time_series, nTrials, tstart, tend)
     num_windows = (tend - tstart - window_size) // step_window
     kuramoto_order = np.zeros(nTrials)
 
+    # ------- #
+    # kuramoto_window = []
+
+    # ue1_avg = np.mean(time_series[:, 0, : ], axis=0)
+    # ui1_avg = np.mean(time_series[:, 1, : ], axis=0)
+    # ue2_avg = np.mean(time_series[:, 2, : ], axis=0)
+    # ui2_avg = np.mean(time_series[:, 3, : ], axis=0)
+    
+    
+    # for t in range(tstart, tend - window_size, step_window):
+    #     ue = ue1_avg[t : t + window_size] + ue2_avg[t : t + window_size]
+    #     ui = ui1_avg[t : t + window_size] + ui2_avg[t : t + window_size]
+    #     real_kur = ue - np.mean(ue)
+    #     img_kur = ui - np.mean(ui)
+
+    #     kuramoto_window.append(np.mean(np.abs(real_kur + 1j * img_kur)))
+    
+    # kuramoto_window = np.array(kuramoto_window)
+    # # avg_kuramoto = np.mean(kuramoto_window)
+    # # kuramoto_window = (kuramoto_window - avg_kuramoto) / avg_kuramoto
+
+    # kuramoto_order = np.sum(kuramoto_window) / num_windows
+    
+    # ------- #
+
     for q in range(nTrials):
         trial_kuramoto = []
+
+        time_series[q, 0, tstart : ] = time_series[q, 0, tstart : ] - np.mean(time_series[q, 0, tstart : ])
+        time_series[q, 1, tstart : ] = time_series[q, 1, tstart : ] - np.mean(time_series[q, 1, tstart : ])
+        time_series[q, 2, tstart : ] = time_series[q, 2, tstart : ] - np.mean(time_series[q, 2, tstart : ])
+        time_series[q, 3, tstart : ] = time_series[q, 3, tstart : ] - np.mean(time_series[q, 3, tstart : ])
 
         for t in range(tstart, tend - window_size, step_window):
             ue = time_series[q, 0, t : t + window_size] + time_series[q, 2, t : t + window_size]
@@ -363,22 +422,129 @@ def kuramoto_order_calc(time_series, tstart, tend, window_size = 200, step_windo
             trial_kuramoto.append(np.mean(np.abs(real_kur + 1j * img_kur)))
         
         trial_kuramoto = np.array(trial_kuramoto)
-        avg_kuramoto = np.mean(trial_kuramoto)
-        norm_kuramoto = (trial_kuramoto - avg_kuramoto) / avg_kuramoto
+        # avg_kuramoto = np.mean(trial_kuramoto)
+        # norm_kuramoto = (trial_kuramoto - avg_kuramoto) / avg_kuramoto
 
-        kuramotoMask = np.where(np.abs(norm_kuramoto) <= 1)
-        norm_kuramoto = norm_kuramoto[kuramotoMask]
+        # kuramotoMask = np.where(np.abs(norm_kuramoto) <= 1)
+        # norm_kuramoto = norm_kuramoto[kuramotoMask]
 
-        kuramoto_order[q] = np.sum(abs(norm_kuramoto)) / num_windows
+        kuramoto_order[q] = np.sum(trial_kuramoto) / num_windows
+
+
     
     return kuramoto_order
 
 # Synchornization - spectrum time series
 
+# class SpectrumSynch(object):
+#     def __init__(self, time_series, tstart, tend, fmin, fmax, fs, window_size, step_window) -> None:
+#         nTrials, _, _ = time_series.shape
+#         time_series = variation_adjust(time_series, nTrials, tstart, tend)
+        
+#         self.ue1 = time_series[:, 0, tstart : tend]
+#         self.ue2 = time_series[:, 2, tstart : tend]
+#         self.t1 = tstart
+#         self.t2 = tend
+#         self.fs = fs
+#         self.Minfreq = fmin
+#         self.Maxfreq = fmax
+#         self.nTrials = nTrials
+#         self.window_size = window_size
+#         self.step_window = step_window
+        
+#         return
+
+#     def WaveletCalc(self, ue_series, center_freq=12.):
+#         freq_arr = np.linspace(1, self.fs / 2, 1000)
+#         widths = center_freq * self.fs / (2 * freq_arr * np.pi)
+
+#         wtmatr = signal.cwt(ue_series, signal.morlet2, widths, w=center_freq)
+#         wtmatr = np.flipud(wtmatr)
+
+#         return freq_arr, wtmatr
+
+#     def SpectBand(self, ue_series):
+#         freq_arr, spect_ue = self.WaveletCalc(ue_series)
+        
+#         fmax_ind = np.argmin(abs(freq_arr - self.Maxfreq))
+#         fmin_ind = np.argmin(abs(freq_arr - self.Minfreq))
+
+#         spect_band = np.flipud(spect_ue)[fmin_ind : fmax_ind, :]
+        
+#         spect_argmax = np.argmax(np.abs(spect_band), axis=0)
+#         spect_series = np.array([spect_band[x, t] for t, x in enumerate(spect_argmax)])
+
+#         psi_series = np.angle(spect_series)
+#         amp_series = np.abs(spect_series)
+
+#         return psi_series, amp_series
+    
+#     def GlobalSynch(self, psi_1, psi_2):
+#         # Sliding window-based Global Synchronization
+#         globsync_order = []
+
+#         for t in range(0, self.t2 - self.t1 - self.window_size, self.step_window):
+#             phase_sum = np.exp(1j * psi_1[t : t + self.window_size]) + np.exp(1j * psi_2[t : t + self.window_size])
+#             phase_sum = phase_sum / 2 
+#             globsync_order.append(np.mean(np.abs(phase_sum)))
+        
+#         globsync_order = np.array(globsync_order)
+        
+#         return np.mean(globsync_order)
+
+#     def SVDSynch(self, psi_1, psi_2):
+#         svd_synch_local = []
+
+#         psi_1_exp = np.exp(1j * psi_1)
+#         psi_2_exp = np.exp(1j * psi_2)
+        
+#         for t in range(0, self.t2 - self.t1 - self.window_size, self.step_window):
+#             psi_mat = np.array([psi_1[t : t + self.window_size], psi_2[t : t + self.window_size]])
+            
+#             # SVD decomposition
+#             u_vect, sing_val, _ = np.linalg.svd(psi_mat, full_matrices=False)
+#             uSigma_ = u_vect * sing_val
+#             svdMeasure_ = min(abs(uSigma_[0, 0] / uSigma_[0, 1]), abs(uSigma_[0, 1] / uSigma_[0, 0]))
+
+#             if round(uSigma_[0, 0], 3) == 0 and round(uSigma_[0, 1], 3) == 0:
+#                 svdMeasure_ = 0.0
+
+#             svd_synch_local.append(svdMeasure_)
+
+#         svd_synch_local = np.array(svd_synch_local)
+        
+#         return np.mean(svd_synch_local)
+
+
+#     def MIPhase(self, psi_1, psi_2, n_neighbors = 4):
+#         return MI(psi_1.reshape(-1, 1), psi_2, n_neighbors = n_neighbors, discrete_features=False)[0] 
+
+#     def MIAmplitude(self, amp_1, amp_2, n_neighbors = 4):
+#         return MI(amp_1.reshape(-1, 1), amp_2, n_neighbors = n_neighbors, discrete_features=False)[0]
+    
+#     def calc_synchronization(self):
+#         GlobSync_avg = np.zeros(self.nTrials)
+#         SVDSynch_avg = np.zeros(self.nTrials)
+#         MI_psi = np.zeros(self.nTrials)
+#         MI_abs = np.zeros(self.nTrials)
+
+#         for q in range(self.nTrials):
+#             psi_1, amp_1 = self.SpectBand(self.ue1[q, :])
+#             psi_2, amp_2 = self.SpectBand(self.ue2[q, :])
+
+#             GlobSync_avg[q] = self.GlobalSynch(psi_1=psi_1, psi_2=psi_2)
+#             SVDSynch_avg[q] = self.SVDSynch(psi_1=psi_1, psi_2=psi_2)
+#             MI_psi[q] = self.MIPhase(psi_1=psi_1, psi_2=psi_2)
+#             MI_abs[q] = self.MIAmplitude(amp_1=amp_1, amp_2=amp_2)
+        
+#         return GlobSync_avg, SVDSynch_avg, MI_psi, MI_abs
+
+# Test MI
+
 class SpectrumSynch(object):
     def __init__(self, time_series, tstart, tend, fmin, fmax, fs, window_size, step_window) -> None:
         nTrials, _, _ = time_series.shape
-        time_series = variation_adjust(time_series, nTrials, tstart, tend)
+        # time_series = variation_adjust(time_series, nTrials, tstart, tend)
         
         self.ue1 = time_series[:, 0, tstart : tend]
         self.ue2 = time_series[:, 2, tstart : tend]
@@ -416,14 +582,18 @@ class SpectrumSynch(object):
         psi_series = np.angle(spect_series)
         amp_series = np.abs(spect_series)
 
-        return psi_series, amp_series
+        maxamp_series = np.max(abs(spect_ue), axis=0)
+        prop_series =  amp_series / maxamp_series
+
+        return psi_series, amp_series, prop_series
     
-    def GlobalSynch(self, psi_1, psi_2):
+    def GlobalSynch(self, psi_1, psi_2, prop_1, prop_2):
         # Sliding window-based Global Synchronization
         globsync_order = []
 
         for t in range(0, self.t2 - self.t1 - self.window_size, self.step_window):
-            phase_sum = np.exp(1j * psi_1[t : t + self.window_size]) + np.exp(1j * psi_2[t : t + self.window_size])
+            phase_sum = np.mean(prop_1[t : t + self.window_size]) * np.exp(1j * psi_1[t : t + self.window_size]) +\
+                        np.mean(prop_2[t : t + self.window_size]) * np.exp(1j * psi_2[t : t + self.window_size])
             phase_sum = phase_sum / 2 
             globsync_order.append(np.mean(np.abs(phase_sum)))
         
@@ -452,29 +622,44 @@ class SpectrumSynch(object):
         return np.mean(svd_synch_local)
 
 
-    def MIPhase(self, psi_1, psi_2, n_neighbors = 4):
-        return MI(psi_1.reshape(-1, 1), psi_2, n_neighbors = n_neighbors, discrete_features=False)[0] 
+    def MIPhase(self, psi_1, psi_2, prop_1, prop_2, n_neighbors = 4):
+        return np.mean(prop_1) * np.mean(prop_2) * MI(psi_1.reshape(-1, 1), psi_2, n_neighbors = n_neighbors, discrete_features=False)[0] 
 
-    def MIAmplitude(self, amp_1, amp_2, n_neighbors = 4):
-        return MI(amp_1.reshape(-1, 1), amp_2, n_neighbors = n_neighbors, discrete_features=False)[0]
+    def MIAmplitude(self, amp_1, amp_2, prop_1, prop_2, n_neighbors = 4):
+        return np.mean(prop_1) * np.mean(prop_2) * MI(amp_1.reshape(-1, 1), amp_2, n_neighbors = n_neighbors, discrete_features=False)[0]
     
+    def modphasesynch(self, psi_1, psi_2, prop_1, prop_2):
+        plv_synch_local = []
+
+        psi_1_exp = np.exp(1j * psi_1)
+        psi_2_exp = np.exp(1j * psi_2)
+
+        for t in range(0, self.t2 - self.t1 - self.window_size, self.step_window):
+            phase_diff = psi_1_exp[t : t + self.window_size] / psi_2_exp[t : t + self.window_size]
+            weight_ = prop_1[t : t + self.window_size] * prop_2[t : t + self.window_size]
+            plv_synch_local.append(np.mean(abs(weight_ * phase_diff)))
+        
+        plv_synch_local = np.array(plv_synch_local)
+        return np.mean(plv_synch_local)
+
     def calc_synchronization(self):
         GlobSync_avg = np.zeros(self.nTrials)
         SVDSynch_avg = np.zeros(self.nTrials)
         MI_psi = np.zeros(self.nTrials)
         MI_abs = np.zeros(self.nTrials)
+        PLV_avg = np.zeros(self.nTrials)
 
         for q in range(self.nTrials):
-            psi_1, amp_1 = self.SpectBand(self.ue1[q, :])
-            psi_2, amp_2 = self.SpectBand(self.ue2[q, :])
+            psi_1, amp_1, prop_1 = self.SpectBand(self.ue1[q, :])
+            psi_2, amp_2, prop_2 = self.SpectBand(self.ue2[q, :])
 
-            GlobSync_avg[q] = self.GlobalSynch(psi_1=psi_1, psi_2=psi_2)
+            GlobSync_avg[q] = self.GlobalSynch(psi_1=psi_1, psi_2=psi_2, prop_1=prop_1, prop_2=prop_2)
             SVDSynch_avg[q] = self.SVDSynch(psi_1=psi_1, psi_2=psi_2)
-            MI_psi[q] = self.MIPhase(psi_1=psi_1, psi_2=psi_2)
-            MI_abs[q] = self.MIAmplitude(amp_1=amp_1, amp_2=amp_2)
+            MI_psi[q] = self.MIPhase(psi_1=psi_1, psi_2=psi_2, prop_1=prop_1, prop_2=prop_2)
+            MI_abs[q] = self.MIAmplitude(amp_1=amp_1, amp_2=amp_2, prop_1=prop_1, prop_2=prop_2)
+            PLV_avg[q] = self.modphasesynch(psi_1=psi_1, psi_2=psi_2, prop_1=prop_1, prop_2=prop_2)
         
-        return GlobSync_avg, SVDSynch_avg, MI_psi, MI_abs
-    
+        return GlobSync_avg, SVDSynch_avg, MI_psi, MI_abs, PLV_avg
 
 
 
