@@ -1,12 +1,16 @@
+################################################################################################################
+#
+# Author            : Kalana Abeywardena
+# Affiliation       : University of Toronto, Canada 
+# Date of creation  : 01/08/2023
+#
+# This script provides the helper functions to run the simulations.
+#
+#################################################################################################################
+
 import os
-import glob
-import json
-import time
 import random
-import pickle
-import datetime
 import numpy as np
-from numba import jit
 import pandas as pd
 from copy import deepcopy
 import matplotlib.pyplot as plt
@@ -43,18 +47,10 @@ def modelP(N, nTrials, data_root, n_files = 88,  WD="High"):
     ROI = AALMAp['ROI number'].to_numpy()
     ROI_tags = AALMAp['ROI name'].to_numpy()
 
-    # Select the ROIs from the right hemisphere
-    RightROIs = ROI[1 :: 2] - 1
-    RightROI_tags = ROI_tags[1 :: 2]
-
     # Reading from OSF data and creating sub-graphs
     P = np.zeros((nTrials, N, N))
     np.random.seed(0)
     load_scs = np.random.randint(1, n_files, nTrials)
-
-    ## Comment out below to run sub-sampled network
-    # ROI_sub = RightROIs[15 : 15 + N]
-    # ROItag_sub = RightROI_tags[15 : 15 + N]
 
     ROI_sub = ROI - 1
     ROItag_sub = ROI_tags
