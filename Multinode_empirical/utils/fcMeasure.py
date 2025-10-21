@@ -41,18 +41,18 @@ def dcor_connectivity(sensors, data):
 
 def filteration(data, f_min, f_max, fs):
     """
-    Performing band pass filteration for synchrony-based measures for different freq. bands.
-    
-    Parameters
-    ----------
-        data (ndarray): Time series data 
-        f_min (float): Low pass frequency of band pass filter given in hertz 
-        f_max (float): High pass frequency of band pass filter given in hertz
-        fs (float): Sampling frequency of data given in hertz
+        Performing band pass filteration for synchrony-based measures for different freq. bands.
+        
+        Parameters
+        ----------
+            data (ndarray): Time series data 
+            f_min (float): Low pass frequency of band pass filter given in hertz 
+            f_max (float): High pass frequency of band pass filter given in hertz
+            fs (float): Sampling frequency of data given in hertz
 
-    Returns 
-    -------
-        filtered data (ndarray): Filtered time series data
+        Returns 
+        -------
+            filtered data (ndarray): Filtered time series data
     """
    
     # Filter design
@@ -205,18 +205,18 @@ class SpectrumSynch(object):
     
 def plv_connectivity(sensors,data):
     """
-    Computing PLV connectivity (ref. https://sapienlabs.org/lab-talk/eeg-connectivity-using-phase-lag-index/). Unlike SpectrumSynch()
-    this implements the PLV from its usual definition based on Hilbert transformation.
-    
-    Parameters
-    ----------
-        sensors (int) : No of sensors used for capturing EEG
-        data (ndarray): time series data
-    
-    Returns
-    -------
-        connectivity_matrix (ndarray): PLV connectivity matrix
-        connectivity_vector (ndarray): PLV connectivity vector
+        Computing PLV connectivity (ref. https://sapienlabs.org/lab-talk/eeg-connectivity-using-phase-lag-index/). Unlike SpectrumSynch()
+        this implements the PLV from its usual definition based on Hilbert transformation.
+        
+        Parameters
+        ----------
+            sensors (int) : No of sensors used for capturing EEG
+            data (ndarray): time series data
+        
+        Returns
+        -------
+            connectivity_matrix (ndarray): PLV connectivity matrix
+            connectivity_vector (ndarray): PLV connectivity vector
 
     """
     # Predefining connectivity matrix
@@ -240,17 +240,17 @@ def plv_connectivity(sensors,data):
             
 def pli_connectivity(sensors,data):
     """
-    Computing Phase Lag Index (PLI) connectivity (ref:https://onlinelibrary.wiley.com/doi/epdf/10.1002/hbm.20346)
-    
-    Parameters
-    ----------
-        sensors (int): No of nodes in the brain graph
-        data (ndarray): time series data 
+        Computing Phase Lag Index (PLI) connectivity (ref:https://onlinelibrary.wiley.com/doi/epdf/10.1002/hbm.20346)
+        
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
 
-    Returns
-    -------
-        connectivity_matrix (ndarray): PLI connectivity matrix
-        connectivity_vector (ndarray): PLI connectivity vector
+        Returns
+        -------
+            connectivity_matrix (ndarray): PLI connectivity matrix
+            connectivity_vector (ndarray): PLI connectivity vector
 
     """
     # Predefining connectivity matrix
@@ -275,17 +275,17 @@ def pli_connectivity(sensors,data):
 
 def ccf_connectivity(sensors,data):
     """
-    Computing Cross Correlation (ref:https://en.wikipedia.org/wiki/Cross-correlation).
-    
-    Parameters
-    ----------
-        sensors (int): No of nodes in the brain graph
-        data (ndarray): time series data 
+        Computing Cross Correlation (ref:https://en.wikipedia.org/wiki/Cross-correlation).
+        
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
 
-    Returns
-    -------
-        connectivity_matrix (ndarray): CCF connectivity matrix
-        connectivity_vector (ndarray): CCF connectivity vector
+        Returns
+        -------
+            connectivity_matrix (ndarray): CCF connectivity matrix
+            connectivity_vector (ndarray): CCF connectivity vector
 
     """
     # Predefining connectivity matrix
@@ -306,21 +306,21 @@ def ccf_connectivity(sensors,data):
 
 def coh_connectivity(sensors,data,f_min,f_max,fs):
     """
-    Computing Coherence
+        Computing Coherence
 
-    Parameters
-    ----------
-        sensors (int): No of nodes in the brain graph
-        data (ndarray): time series data 
-        f_min (float): Low pass frequency of band pass filter given in hertz
-        f_max (float): High pass frequency of band pass filter given in hertz
-        fs (float): Sampling frequency of data given in hertz
-    
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
+            f_min (float): Low pass frequency of band pass filter given in hertz
+            f_max (float): High pass frequency of band pass filter given in hertz
+            fs (float): Sampling frequency of data given in hertz
+        
 
-    Returns
-    -------
-        connectivity_matrix (ndarray): COH connectivity matrix
-        connectivity_vector (ndarray): COH connectivity vector
+        Returns
+        -------
+            connectivity_matrix (ndarray): COH connectivity matrix
+            connectivity_vector (ndarray): COH connectivity vector
     """
 
     # Predefinig connectivity matrix
@@ -340,22 +340,21 @@ def coh_connectivity(sensors,data,f_min,f_max,fs):
 
 def icoh_connectivity(sensors,data,f_min,f_max,fs):
     """
-    Computing imaginary Coherence
-    
-    Parameters
-    ----------
-        sensors (int): No of nodes in the brain graph
-        data (ndarray): time series data 
-        f_min (float): Low pass frequency of band pass filter given in hertz
-        f_max (float): High pass frequency of band pass filter given in hertz
-        fs (float): Sampling frequency of data given in hertz
-    
+        Computing imaginary Coherence
+        
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
+            f_min (float): Low pass frequency of band pass filter given in hertz
+            f_max (float): High pass frequency of band pass filter given in hertz
+            fs (float): Sampling frequency of data given in hertz
+        
 
-    Returns
-    -------
-        connectivity_matrix (ndarray): ICOH connectivity matrix
-        connectivity_vector (ndarray): ICOH connectivity vector
-
+        Returns
+        -------
+            connectivity_matrix (ndarray): ICOH connectivity matrix
+            connectivity_vector (ndarray): ICOH connectivity vector
     """ 
     # Predefinig connectivity matrix
     connectivity_matrix = np.zeros([sensors,sensors],dtype=float)

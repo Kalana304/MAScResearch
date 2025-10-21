@@ -1,39 +1,52 @@
-import os
-import glob
-import json
-import pickle
-import datetime
-import itertools
-import numpy as np
-from copy import deepcopy
-import matplotlib.pyplot as plt
+################################################################################################################
+#
+# Author            : Kalana Abeywardena
+# Affiliation       : University of Toronto, Canada 
+# Date of creation  : 01/11/2023
+#
+# This script provides the helper functions to create plots and save.
+#
+#################################################################################################################
 
+import os
+import numpy as np
 import networkx as nx
+import matplotlib.pyplot as plt
 
 import warnings
 warnings.filterwarnings('ignore')
 warnings.simplefilter('ignore')
 
 import scipy as sp
-from scipy import signal 
-from skimage.feature import canny
-from scipy.interpolate import interp1d
-from sklearn.decomposition import KernelPCA
 from scipy.interpolate import RegularGridInterpolator
 
 plt.rcParams.update({'font.size': 14})
 
 CORRTAGS = {
-            'DCOR': r'$D_{corr}$',
-            'CORCOEF': r'$C_{corr}$',
-            'PLV_LOW': r'$PLV_{corr}^L$',
-            'PLV_HIGH': r'$PLV_{corr}^H$',
-            'PLI': r'$PLI_{corr}$',
-            'COHERENCE_LOW': r'$Coh_{corr}^L$',
-            'COHERENCE_HIGH': r'$Coh_{corr}^H$',
-}
+                'DCOR': r'$D_{corr}$',
+                'CORCOEF': r'$C_{corr}$',
+                'PLV_LOW': r'$PLV_{corr}^L$',
+                'PLV_HIGH': r'$PLV_{corr}^H$',
+                'PLI': r'$PLI_{corr}$',
+                'COHERENCE_LOW': r'$Coh_{corr}^L$',
+                'COHERENCE_HIGH': r'$Coh_{corr}^H$',
+            }
 
 def FCProgressPlot(corrMat, ROI_num, corr_type, SaveDir, ifSave=False, figsize=(35, 5), **opts):
+    """ 
+        This function plots how the functional connectivity changes given the functional connectivity matrix.
+
+        Parameters:
+        -----------
+            corrMat (ndarray): correlation matrix
+            ROI_num (int): No. of regions of interest in brain graph
+            corr_type (str): Type of measure of correlations
+            SaveDir (str): saving directory of plot
+            ifSave (bool): Flag to save or not 
+            figsize (tuple): Figure size
+            **opts (kwargs)
+        
+    """
     fig, axs = plt.subplots(1, 8, figsize=figsize, layout='constrained')
 
     total_corr = 0
@@ -99,6 +112,17 @@ def FCProgressPlot(corrMat, ROI_num, corr_type, SaveDir, ifSave=False, figsize=(
     return   
 
 def plotGraph(P_matrix, ifSave=False, save_dir='', figsize = (15, 50)):
+    """ 
+        This function plots the structural connectome as a graph structure. 
+
+        Parameters:
+        -----------
+            P_matrix (ndarray): Structural connectivity matrix
+            ifSave (bool): Flag save or not
+            save_dir (str): Save directory 
+            figsize (tuple): Figure size in matplotlib
+
+    """
     nTrials, N, _ = P_matrix.shape
     ROI = np.arange(0, N)
 

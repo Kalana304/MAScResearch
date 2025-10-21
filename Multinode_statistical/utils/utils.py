@@ -1,15 +1,19 @@
-import os
-import json
-import time
+################################################################################################################
+#
+# Author            : Kalana Abeywardena
+# Affiliation       : University of Toronto, Canada 
+# Date of creation  : 01/08/2023
+#
+# This script provides the helper functions to run the simulations.
+#
+#################################################################################################################
+
 import random
-import pickle
-import datetime
 import numpy as np
 import pandas as pd
 from copy import deepcopy
 import matplotlib.pyplot as plt
 
-from scipy import signal
 from scipy.optimize import fsolve
 from sklearn.decomposition import KernelPCA
 

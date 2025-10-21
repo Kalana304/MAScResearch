@@ -1,9 +1,32 @@
-## Importing necassary libraries
+################################################################################################################
+#
+# Author            : Kalana Abeywardena
+# Affiliation       : University of Toronto, Canada 
+# Date of creation  : 01/11/2023
+#
+# This script provides the helper functions to compute the fucntional connectivity either in time or freq domain.
+#
+#################################################################################################################
+
 import dcor
 import numpy as np
 import scipy.signal as ss
 
 def dcor_connectivity(sensors, data):
+    """ 
+        This function computes pair-wise distance correlation between time-series data from different nodes in
+        brain graph (ref: https://en.wikipedia.org/wiki/Distance_correlation).
+
+        Parameters:
+        -----------
+            sensors (int): No. of nodes in the graph
+            data (ndarray): Time series data from each node
+
+        Returns:
+        --------
+            connectivity_matrix (ndarray): functional connectome based on distance corr
+            connectivity_vector (ndarray): upper triangle elements 
+    """
     # Predefining connectivity matrix
     connectivity_matrix = np.zeros([sensors,sensors],dtype=float)
 
@@ -18,39 +41,44 @@ def dcor_connectivity(sensors, data):
 
 def filteration(data,f_min,f_max,fs):
     """
-    Performing band pass filteration
-    
-    Parameters
-    ----------
-    data : Array of float
-        DESCRIPTION. EEG data
-    f_min : float
-        DESCRIPTION. Low pass frequency of band pass filter given in hertz
-    f_max : float
-        DESCRIPTION. High pass frequency of band pass filter given in hertz
-    fs : float
-        DESCRIPTION. Sampling frequency of data given in hertz
+        Performing band pass filteration for synchrony-based measures for different freq. bands.
+        
+        Parameters
+        ----------
+            data (ndarray): Time series data 
+            f_min (float): Low pass frequency of band pass filter given in hertz 
+            f_max (float): High pass frequency of band pass filter given in hertz
+            fs (float): Sampling frequency of data given in hertz
 
-    Returns 
-    -------
-    TYPE: Array of float
-        DESCRIPTION. Filtered EEG data
-
-    """
-    # print("Filteration in process.....")
-    
+        Returns 
+        -------
+            filtered data (ndarray): Filtered time series data
+    """ 
     # Filter design
-    sos = ss.butter(N=10,Wn=[f_min,f_max],btype='bandpass',
-                    analog=False,output='sos',fs=fs)
+    sos = ss.butter(N=10,Wn=[f_min,f_max],btype='bandpass', analog=False,output='sos',fs=fs)
 
-    # Returning filtered data
-    # print("Filteration done!")
     return ss.sosfilt(sos,data)
 
 # synchornization analysis - spectral analysis
 
 class SpectrumSynch(object):
     def __init__(self, time_series, tstart, tend, fmin, fmax, fs, window_size, step_window) -> None:
+        """ 
+            This class implements weighted phase locked value-based function synchronization measured paire-wise. 
+            Phase information is deived using Wavelet transformation, and are weighted based on their normalized amplitudes 
+            to avoid unneccessary synchronization due to DC levels. 
+
+            Parameters:
+            -----------
+                time_series (ndarray): simulated time-series data
+                tstart (int)         : start time index of time-series data
+                tend (int)           : end time index of time series data
+                fmin (float)         : low-pass frequency of band pass filter given in hertz
+                fmax (float)         : high-pass frequency of band pass filter given in hertz
+                fs (float)           : sampling frequency of data given in hertz
+                window_size (int)    : sliding window size
+                step_window (int)    : shift of each window
+        """
         nTrials, _, _ = time_series.shape
         
         self.ue = time_series[:, 0::2, tstart : tend]
@@ -67,6 +95,20 @@ class SpectrumSynch(object):
         return
 
     def WaveletCalc(self, ue_series, center_freq=12.):
+        """ 
+            This metho computes the Wavelt transformation of a given time series data from 
+            excitatory subpopulation. 
+
+            Parameters:
+            -----------
+                ue_series (ndarray): time series data of a single node
+                center_freq (float): center frequency in hertz
+            
+            Returns:
+            --------
+                freq_arr (ndarray): frequency array 
+                wtmatr (ndarray): Wavelet matrix 
+        """
         freq_arr = np.linspace(1, self.fs / 2, 1000)
         widths = center_freq * self.fs / (2 * freq_arr * np.pi)
 
@@ -76,29 +118,59 @@ class SpectrumSynch(object):
         return freq_arr, wtmatr
 
     def SpectBand(self, ue_series):
-        freq_arr, spect_ue = self.WaveletCalc(ue_series)
+        """ 
+            This method extracts wavelet coefficients of a given frequency band and computes
+            phase series and normalized amplitude series for correlation computation.
+
+            Parameters:
+            -----------
+                ue_series (ndarray): time series of a single node
+            
+            Returns:
+            --------
+                psi_series (ndarray): Phase series of the given frequency range
+                prop_series (ndarray): Normalized amplitude series of the given frequency range
+        """
+
+        freq_arr, spect_ue = self.WaveletCalc(ue_series)        # computes the wavelet matrix and corresponding frequency array
         
-        fmax_ind = np.argmin(abs(freq_arr - self.Maxfreq))
-        fmin_ind = np.argmin(abs(freq_arr - self.Minfreq))
+        fmax_ind = np.argmin(abs(freq_arr - self.Maxfreq))      # find matrix index corresponding to maximum frequency
+        fmin_ind = np.argmin(abs(freq_arr - self.Minfreq))      # find matric index corresponding to minimum frequency
 
-        spect_band = np.flipud(spect_ue)[fmin_ind : fmax_ind, :]
+        spect_band = np.flipud(spect_ue)[fmin_ind : fmax_ind, :]    # get the wavelet coefficients of the spectral range 
         
-        spect_argmax = np.argmax(np.abs(spect_band), axis=0)
-        spect_series = np.array([spect_band[x, t] for t, x in enumerate(spect_argmax)])
+        spect_argmax = np.argmax(np.abs(spect_band), axis=0)        # identify the dominating wavelet coefficients 
+        spect_series = np.array([spect_band[x, t] for t, x in enumerate(spect_argmax)])     
 
-        psi_series = np.angle(spect_series)
-        amp_series = np.abs(spect_series)
+        psi_series = np.angle(spect_series)         # extract the phase information
+        amp_series = np.abs(spect_series)           # extract the amplitude information
 
-        maxamp_series = np.max(abs(spect_ue), axis=0)
-        prop_series =  amp_series / maxamp_series 
+        maxamp_series = np.max(abs(spect_ue), axis=0)   # get the maximum amplitude
+        prop_series =  amp_series / maxamp_series       # normalize the amplitude series
 
-        nanVal = np.argwhere(np.isnan(prop_series))
+        nanVal = np.argwhere(np.isnan(prop_series))     # identify any not a number values
         if len(nanVal) != 0:
-            prop_series[nanVal] = 0
+            prop_series[nanVal] = 0                     # those with nan values are replaced with 0
 
         return psi_series, prop_series
     
     def modphasesynch(self, psi_1, psi_2, prop_1, prop_2):
+        """ 
+            This method implements weighted Phase Locking Value (PLV), that weights the phase time series with 
+            relative wavelet strength using the normalized amplitude wavelet series. This zeros out phase synchrony 
+            for flat activities in simulated time series. 
+
+            Parameters:
+            -----------
+                psi_1 (ndarray): phase series of node 1
+                psi_2 (ndarray): phase series of node 2
+                prop_1 (ndarray): normalized amplitude series of node 1
+                prop_2 (ndarray): normalized amplitude series of node 2
+            
+            Returns:
+            --------
+                mean_plc_synch (float): mean PLV value between two nodes
+        """
         plv_synch_local = []
 
         psi_1_exp = np.exp(1j * psi_1)
@@ -131,24 +203,21 @@ class SpectrumSynch(object):
     
 def plv_connectivity(sensors,data):
     """
-    Computing PLV connectivity
-    
-    Parameters
-    ----------
-    sensors : INT
-        DESCRIPTION. No of sensors used for capturing EEG
-    data : Array of float 
-        DESCRIPTION. EEG Data
-    
-    Returns
-    -------
-    connectivity_matrix : Matrix of float
-        DESCRIPTION. PLV connectivity matrix
-    connectivity_vector : Vector of flaot 
-        DESCRIPTION. PLV connectivity vector
-
+        Computing PLV connectivity (ref. https://sapienlabs.org/lab-talk/eeg-connectivity-using-phase-lag-index/). Unlike SpectrumSynch()
+        this implements the PLV from its usual definition based on Hilbert transformation.
+        
+        Parameters
+        ----------
+            sensors (int) : No of sensors used for capturing EEG
+            data (ndarray): time series data
+        
+        Returns
+        -------
+            connectivity_matrix (ndarray): PLV connectivity matrix
+            connectivity_vector (ndarray): PLV connectivity vector
     """
-
+    # Predefining connectivity matrix
+    connectivity_matrix = np.zeros([sensors,sensors],dtype=float)
     
     # Computing hilbert transform
     data_points = data.shape[-1]
@@ -168,22 +237,17 @@ def plv_connectivity(sensors,data):
             
 def pli_connectivity(sensors,data):
     """
-    Computing PLI connectivity
-    
-    Parameters
-    ----------
-    sensors : INT
-        DESCRIPTION. No of sensors used for capturing EEG
-    data : Array of float 
-        DESCRIPTION. EEG Data
+        Computing Phase Lag Index (PLI) connectivity (ref:https://onlinelibrary.wiley.com/doi/epdf/10.1002/hbm.20346)
+        
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
 
-    Returns
-    -------
-    connectivity_matrix : Matrix of float
-        DESCRIPTION. PLI connectivity matrix
-    connectivity_vector : Vector of flaot 
-        DESCRIPTION. PLI connectivity vector
-
+        Returns
+        -------
+            connectivity_matrix (ndarray): PLI connectivity matrix
+            connectivity_vector (ndarray): PLI connectivity vector
     """
     # Predefining connectivity matrix
     connectivity_matrix = np.zeros([sensors,sensors],dtype=float)
@@ -207,23 +271,19 @@ def pli_connectivity(sensors,data):
 
 def ccf_connectivity(sensors,data):
     """
-    Computing Cross Correlation
-    
-    Parameters
-    ----------
-    sensors : INT
-        DESCRIPTION. No of sensors used for capturing EEG
-    data : Array of float 
-        DESCRIPTION. EEG Data
+        Computing Cross Correlation (ref:https://en.wikipedia.org/wiki/Cross-correlation).
+        
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
 
-    Returns
-    -------
-    connectivity_matrix : Matrix of float
-        DESCRIPTION. CCF connectivity matrix
-    connectivity_vector : Vector of float 
-        DESCRIPTION. CCF connectivity vector
-
+        Returns
+        -------
+            connectivity_matrix (ndarray): CCF connectivity matrix
+            connectivity_vector (ndarray): CCF connectivity vector
     """
+
     # Predefining connectivity matrix
     connectivity_matrix = np.zeros([sensors,sensors],dtype=float)
     
@@ -242,29 +302,23 @@ def ccf_connectivity(sensors,data):
 
 def coh_connectivity(sensors,data,f_min,f_max,fs):
     """
-    Computing Coherence
-    
-    Parameters
-    ----------
-    sensors : INT
-        DESCRIPTION. No of sensors used for capturing EEG
-    data : Array of float 
-        DESCRIPTION. EEG Data
-    f_min : float
-        DESCRIPTION. Low pass frequency of band pass filter given in hertz
-    f_max : TYPE: float
-        DESCRIPTION. High pass frequency of band pass filter given in hertz
-    fs : TYPE: float
-        DESCRIPTION. Sampling frequency of data given in hertz
-    
-    Returns
-    -------
-    connectivity_matrix : Matrix of float
-        DESCRIPTION. COH connectivity matrix
-    connectivity_vector : Vector of float 
-        DESCRIPTION. COH connectivity vector
+        Computing Coherence
 
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
+            f_min (float): Low pass frequency of band pass filter given in hertz
+            f_max (float): High pass frequency of band pass filter given in hertz
+            fs (float): Sampling frequency of data given in hertz
+        
+
+        Returns
+        -------
+            connectivity_matrix (ndarray): COH connectivity matrix
+            connectivity_vector (ndarray): COH connectivity vector
     """
+
     # Predefinig connectivity matrix
     connectivity_matrix = np.zeros([sensors,sensors],dtype=float)
     
@@ -282,29 +336,23 @@ def coh_connectivity(sensors,data,f_min,f_max,fs):
 
 def icoh_connectivity(sensors,data,f_min,f_max,fs):
     """
-    Computing imaginary Coherence
-    
-    Parameters
-    ----------
-    sensors : INT
-        DESCRIPTION. No of sensors used for capturing EEG
-    data : Array of float 
-        DESCRIPTION. EEG Data
-    f_min : float
-        DESCRIPTION. Low pass frequency of band pass filter given in hertz
-    f_max : TYPE: float
-        DESCRIPTION. High pass frequency of band pass filter given in hertz
-    fs : TYPE: float
-        DESCRIPTION. Sampling frequency of data given in hertz
-    
-    Returns
-    -------
-    connectivity_matrix : Matrix of float
-        DESCRIPTION. ICOH connectivity matrix
-    connectivity_vector : Vector of float 
-        DESCRIPTION. ICOH connectivity vector
+        Computing imaginary Coherence
+        
+        Parameters
+        ----------
+            sensors (int): No of nodes in the brain graph
+            data (ndarray): time series data 
+            f_min (float): Low pass frequency of band pass filter given in hertz
+            f_max (float): High pass frequency of band pass filter given in hertz
+            fs (float): Sampling frequency of data given in hertz
+        
 
+        Returns
+        -------
+            connectivity_matrix (ndarray): ICOH connectivity matrix
+            connectivity_vector (ndarray): ICOH connectivity vector
     """ 
+    
     # Predefinig connectivity matrix
     connectivity_matrix = np.zeros([sensors,sensors],dtype=float)
     
