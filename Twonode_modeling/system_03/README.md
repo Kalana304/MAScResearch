@@ -1,0 +1,1 @@
+In this experiments, the heterogeneities for the node 2 are assigned based on a mean heterogeneity assigned to the modulated node.
