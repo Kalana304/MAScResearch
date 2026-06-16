@@ -1,4 +1,4 @@
-# MAScResearch
+# The impact of intrinsic excitability heterogeneity on the macro-scale brain dynamics: Computational analysis on stability, resilience, and synchrony
 This repository contains the whole-brain dynamic simulation code developed using a heterogeneity mean-field model for the MASc Research Thesis Project at the University of Toronto, Canada.
 
 ## Abstract
