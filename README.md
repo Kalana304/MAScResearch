@@ -5,14 +5,8 @@ model where each node consists of a neural mass model with interacting excitator
 
 ## Dynamics of macro-scale node $$n \in [N]$$
 
-<img width="2555" height="1279" alt="Modelsetup" src="https://github.com/user-attachments/assets/421722ed-00e6-46da-b82e-b79758aee832" />
+<img width="4116" height="1818" alt="Modelsetup" src="https://github.com/user-attachments/assets/cde77a15-b0ff-4070-b9a4-6f12d6b450c9" />
 
-$$
-\begin{align*}
-  &\tau_e \dot{u}^n_e = -u^n_e + w_{ee}F_{\beta}(u^n_e, \sigma^n_e) + w_{ie}F_{\beta}(u^n_i, \sigma^n_i) + I_{e, 0} + I^n_e + \boxed{{\rm K_{glob}}\sum_{m=1}^N p_{nm}u_e^m}\\
-  &\tau_i \dot{u}^n_i = -u^n_i + w_{ei}F_{\beta}(u^n_e, \sigma^n_e) + w_{ii}F_{\beta}(u^n_i, \sigma^n_i) + I_{i, 0} 
-\end{align*}
-$$
 
 
 
