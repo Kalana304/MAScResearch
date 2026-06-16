@@ -5,7 +5,11 @@ model where each node consists of a neural mass model with interacting excitator
 
 ## Dynamics of macro-scale node $$n \in [N]$$
 
-<img width="2555" height="1279" alt="Modelsetup" src="https://github.com/user-attachments/assets/629d0a1f-27b7-42cd-9092-18efa41c5626" />
+<img width="4116" height="1818" alt="Modelsetup" src="https://github.com/user-attachments/assets/8856ef52-45e4-4e7a-8117-a64ca45ba32f" />
+
+<img width="4279" height="2135" alt="Params" src="https://github.com/user-attachments/assets/faafb245-3628-425d-bf57-f973a20185c7" />
+
+
 
 
 
