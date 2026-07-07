@@ -4,7 +4,7 @@ This directory contains the simulations run with structural connectivity data do
 
 Common parameter setup:
 
-1. Structural connectivity from data. Re-arrange matrix based on weighted degree from highest to the lowest. Normalization: $\max\left\{\sum_{j=1}^N a_{ij}\right\} = 1 \forall i \in [N]$
+1. Structural connectivity from data. Rearrange matrix based on weighted degree from highest to lowest. Normalization: $\max\{\sum_{j=1}^N a_{ij}\} = 1 \forall i \in [N]$
 
 2. $K_{glob} \in [-1, 1]$
 
